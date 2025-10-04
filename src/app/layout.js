@@ -17,6 +17,7 @@ import UpworkSection from '@/components/UpworkSection'
 import ContactForm from '@/components/ContactForm'
 import Footer from '@/components/Footer'
 import TopProjects from '@/components/TopProjects'
+import { Analytics } from "@vercel/analytics/next"
 
 export default function RootLayout({ children }) {
   const [showButton, setShowButton] = useState(false)
@@ -85,6 +86,7 @@ export default function RootLayout({ children }) {
           <link rel="icon" href="/favicon.ico" />
         </head>
         <body className="overflow-x-hidden">
+          <Analytics/>
           <CursorTrail />
           <AnimatePresence mode="wait">
             {loading ? (
