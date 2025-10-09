@@ -4,30 +4,30 @@ import { motion } from "framer-motion";
 import {
   FaLinkedin,
   FaGithub,
-  FaEnvelope,
-  FaCode,
   FaBars,
   FaTimes,
-  FaUpork
 } from "react-icons/fa";
 import { SiUpwork } from "react-icons/si";
 import { AiOutlineWhatsApp } from "react-icons/ai";
 import { FaFacebook } from "react-icons/fa6";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const navLinks = ["Home", "About", "Skills", "Projects", "Testimonial", "Contact"];
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const [activeSection, setActiveSection] = useState("Home");
+  const [activeSection, setActiveSection] = useState("home");
   const observerRef = useRef(null);
+  const router = useRouter();
 
   // Set up intersection observer
   useEffect(() => {
     const observerOptions = {
       root: null,
       rootMargin: "0px",
-      threshold: 0.5, // Adjust this value to change when the section is considered active
+      threshold: 0.5,
     };
 
     const handleIntersect = (entries) => {
@@ -71,8 +71,15 @@ export default function Navbar() {
   const handleSmoothScroll = (e, targetId) => {
     e.preventDefault();
     setMenuOpen(false);
+    
+    // If we're not on the home page, navigate to home page first
+    if (window.location.pathname !== '/') {
+      router.push(`/#${targetId}`);
+      return;
+    }
+
     setActiveSection(targetId);
-    const targetElement = document.querySelector(`#${targetId}`);
+    const targetElement = document.getElementById(targetId);
     if (targetElement) {
       const headerOffset = 20;
       const elementPosition = targetElement.getBoundingClientRect().top;
@@ -82,6 +89,22 @@ export default function Navbar() {
         top: offsetPosition,
         behavior: "smooth",
       });
+    }
+  };
+
+  const handleHomeClick = (e) => {
+    e.preventDefault();
+    setMenuOpen(false);
+    
+    if (window.location.pathname !== '/') {
+      router.push('/');
+    } else {
+      // If already on home page, scroll to top
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+      setActiveSection('home');
     }
   };
 
@@ -119,7 +142,7 @@ export default function Navbar() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6 }}
           whileHover="hover"
-          onClick={(e) => handleSmoothScroll(e, "home")}
+          onClick={handleHomeClick}
         >
           <motion.span
             className="text-3xl font-bold text-cyan-400 group-hover:text-white transition-colors duration-300"
@@ -141,8 +164,8 @@ export default function Navbar() {
           {navLinks.map((link) => (
             <li key={link} className="relative group">
               <motion.a
-                href={`#${link.toLowerCase()}`}
-                onClick={(e) => handleSmoothScroll(e, link.toLowerCase())}
+                href={link === "Home" ? "/" : `/#${link.toLowerCase()}`}
+                onClick={(e) => link === "Home" ? handleHomeClick(e) : handleSmoothScroll(e, link.toLowerCase())}
                 className={`px-2 py-2 text-sm font-medium transition-colors duration-300 relative ${
                   activeSection === link.toLowerCase() 
                     ? "text-cyan-400" 
@@ -154,7 +177,7 @@ export default function Navbar() {
               >
                 {link}
                 <motion.span
-                  className={`absolute bottom-0 left-0 w-full h-[1px]  rounded-[100px] ${
+                  className={`absolute bottom-0 left-0 w-full h-[1px] rounded-[100px] ${
                     activeSection === link.toLowerCase() 
                       ? "bg-cyan-400 scale-x-50" 
                       : "bg-cyan-400 scale-x-0"
@@ -166,6 +189,25 @@ export default function Navbar() {
               </motion.a>
             </li>
           ))}
+
+          <li className="relative group">
+            <Link href="/blog">
+              <motion.span
+                className="px-2 py-2 text-sm font-medium text-gray-300 hover:text-white transition-colors duration-300 relative cursor-pointer"
+                whileHover="hover"
+                initial="initial"
+                variants={linkVariants}
+              >
+                Blog
+                <motion.span
+                  className="absolute bottom-0 left-0 w-full h-[1px] bg-cyan-400 rounded-[100px] scale-x-0"
+                  variants={{ hover: { scaleX: 1 } }}
+                  transition={{ duration: 0.3 }}
+                  style={{ originX: 0.5 }}
+                />
+              </motion.span>
+            </Link>
+          </li>
         </ul>
 
         {/* Updated Social Links */}
@@ -174,7 +216,7 @@ export default function Navbar() {
             { href: "https://www.linkedin.com/in/abdur--razzak/", icon: FaLinkedin, label: "LinkedIn" },
             { href: "https://www.upwork.com/freelancers/~01cbcc4bb65e1d54ef", icon: SiUpwork, label: "Upwork" },
             { href: "https://wa.me/8801703906980", icon: AiOutlineWhatsApp, label: "WhatsApp" },
-            { href: "https://wa.me/8801703906980", icon: FaFacebook, label: "Facebook" },
+            { href: "https://facebook.com", icon: FaFacebook, label: "Facebook" },
             { href: "https://github.com/fabrazzak", icon: FaGithub, label: "GitHub" },
           ].map((social) => (
             <motion.a
@@ -227,8 +269,8 @@ export default function Navbar() {
               {navLinks.map((link) => (
                 <li key={link}>
                   <motion.a
-                    href={`#${link.toLowerCase()}`}
-                    onClick={(e) => handleSmoothScroll(e, link.toLowerCase())}
+                    href={link === "Home" ? "/" : `/#${link.toLowerCase()}`}
+                    onClick={(e) => link === "Home" ? handleHomeClick(e) : handleSmoothScroll(e, link.toLowerCase())}
                     className={`block px-4 py-2 text-lg font-medium rounded-md transition-colors duration-300 ${
                       activeSection === link.toLowerCase()
                         ? "text-cyan-400 bg-white/5"
@@ -240,13 +282,23 @@ export default function Navbar() {
                   </motion.a>
                 </li>
               ))}
+              <li>
+                <Link href="/blog" onClick={() => setMenuOpen(false)}>
+                  <motion.span
+                    className="block px-4 py-2 text-lg font-medium text-gray-300 hover:text-cyan-400 hover:bg-white/5 rounded-md transition-colors duration-300"
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    Blog
+                  </motion.span>
+                </Link>
+              </li>
               <li className="pt-6 border-t border-white/10">
                 <div className="flex justify-center space-x-6">
                   {[
                     { href: "https://www.linkedin.com/in/abdur--razzak/", icon: FaLinkedin, label: "LinkedIn" },
                     { href: "https://www.upwork.com/freelancers/~01cbcc4bb65e1d54ef", icon: SiUpwork, label: "Upwork" },
                     { href: "https://wa.me/8801703906980", icon: AiOutlineWhatsApp, label: "WhatsApp" },
-                    { href: "https://wa.me/8801703906980", icon: FaFacebook, label: "Facebook" },
+                    { href: "https://facebook.com", icon: FaFacebook, label: "Facebook" },
                     { href: "https://github.com/fabrazzak", icon: FaGithub, label: "GitHub" },
                   ].map((social) => (
                     <motion.a

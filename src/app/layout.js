@@ -2,21 +2,12 @@
 
 import './globals.css'
 import Navbar from '@/components/Navbar'
-import Hero from '@/components/Hero'
 import { FaArrowUp } from 'react-icons/fa'
 import { useState, useEffect } from 'react'
 import CursorTrail from '@/components/CursorTrail'
 import { motion, AnimatePresence } from 'framer-motion'
 import LoadingScreen from '@/components/LoadingScreen'
-import About from '@/components/About'
-import Skills from '@/components/Skills'
-import Projects from '@/components/Projects'
-import Achievements from '@/components/Achievements'
-import Testimonials from '@/components/Testimonial'
-import UpworkSection from '@/components/UpworkSection'
-import ContactForm from '@/components/ContactForm'
 import Footer from '@/components/Footer'
-import TopProjects from '@/components/TopProjects'
 import { Analytics } from "@vercel/analytics/next"
 
 export default function RootLayout({ children }) {
@@ -60,19 +51,7 @@ export default function RootLayout({ children }) {
 
   return (
     <>
-      <style jsx global>{`
-        /* Hide scrollbar for Chrome, Safari and Opera */
-        ::-webkit-scrollbar {
-          display: none;
-        }
-        
-        /* Hide scrollbar for IE, Edge and Firefox */
-        html {
-          -ms-overflow-style: none;  /* IE and Edge */
-          scrollbar-width: none;  /* Firefox */
-        }
-      `}</style>
-      
+
       <html lang="en" className="scroll-smooth">
         <head>
           <title>Abdur Razzak | I am  a passionate Full-Stack Web Developer and Top Rated Freelancer at UpWork who transforms complex business requirements into user-centric digital solutions. I specialize in scalable architectures using technologies like React.js, Next.js, TypeScript, Tailwind CSS,ShadCN, Node.js, Express.js and MongoDB, while also offering deep expertise in WordPress Customization. My mission is to build secure, fast, and impactful web applications that drive growth and delight users</title>
@@ -86,13 +65,13 @@ export default function RootLayout({ children }) {
           <link rel="icon" href="/favicon.ico" />
         </head>
         <body className="overflow-x-hidden">
-          <Analytics/>
+          <Analytics />
           <CursorTrail />
           <AnimatePresence mode="wait">
             {loading ? (
               <LoadingScreen finishLoading={finishLoading} key="loading" />
             ) : (
-              <motion.div 
+              <motion.div
                 key="content"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -100,21 +79,15 @@ export default function RootLayout({ children }) {
                 className="w-full relative"
               >
                 {/* Single Navbar */}
-                <Navbar />
-                
-                {/* Main content without extra padding */}
-                <main>
-                  <Hero />
-                  <About />
-                  <Skills />
-                  <TopProjects></TopProjects>
-                  <Projects />
-                  {/* <Achievements /> */}
-                  <Testimonials></Testimonials>
-                  <UpworkSection></UpworkSection>
-                  <ContactForm></ContactForm>
-                </main>
-                <Footer></Footer>
+
+                <div>
+                  <Navbar />
+                  {children}
+                  <Footer></Footer>
+                </div>
+
+
+
 
                 <AnimatePresence>
                   {showButton && (
