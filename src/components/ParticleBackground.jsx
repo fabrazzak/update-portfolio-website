@@ -47,54 +47,98 @@ export default function InteractiveSkillBackground() {
   const iconsRef = useRef([]);
   const [activeIcon, setActiveIcon] = useState(null);
   const [selectedIcon, setSelectedIcon] = useState(null);
+  const [autoActiveSkill, setAutoActiveSkill] = useState(0);
   const animationRef = useRef(null);
+  const autoCycleTimerRef = useRef(null);
   
-  // Initialize positions with different movement patterns
-  const positionsRef = useRef(skills.map((_, i) => {
-    const angle = (i / skills.length) * Math.PI * 2;
-    const distance = 60 + Math.random() * 100;
+  // Function to generate random positions ensuring no overlap
+  const generateRandomPositions = () => {
+    const positions = [];
+    const minDistance = 15; // Minimum distance between icons in percentage
     
-    // Random movement pattern for each icon
-    const movementPattern = Math.floor(Math.random() * 5);
-    let vx, vy;
-    
-    switch(movementPattern) {
-      case 0: // Horizontal movement
-        vx = (Math.random() * 0.3 - 0.15) * 2;
-        vy = 0;
-        break;
-      case 1: // Vertical movement
-        vx = 0;
-        vy = (Math.random() * 0.3 - 0.15) * 2;
-        break;
-      case 2: // Diagonal movement
-        vx = (Math.random() * 0.2 - 0.1) * 2;
-        vy = (Math.random() * 0.2 - 0.1) * 2;
-        break;
-      case 3: // Circular movement
-        vx = Math.cos(angle) * 0.15;
-        vy = Math.sin(angle) * 0.15;
-        break;
-      default: // Random movement
-        vx = Math.random() * 0.3 - 0.15;
-        vy = Math.random() * 0.3 - 0.15;
+    for (let i = 0; i < skills.length; i++) {
+      let attempts = 0;
+      let validPosition = false;
+      let x, y;
+      
+      // Try to find a non-overlapping position
+      while (!validPosition && attempts < 100) {
+        // Generate random position (keeping away from edges)
+        x = 10 + Math.random() * 80; // 10% to 90% to avoid edges
+        y = 10 + Math.random() * 80; // 10% to 90% to avoid edges
+        
+        // Check if this position overlaps with any existing position
+        let collision = false;
+        for (let j = 0; j < i; j++) {
+          const dx = x - positions[j].x;
+          const dy = y - positions[j].y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          if (distance < minDistance) {
+            collision = true;
+            break;
+          }
+        }
+        
+        if (!collision) {
+          validPosition = true;
+        }
+        attempts++;
+      }
+      
+      // If we couldn't find a non-overlapping position, just use random position
+      if (!validPosition) {
+        x = 10 + Math.random() * 80;
+        y = 10 + Math.random() * 80;
+      }
+      
+      // Random movement pattern for each icon
+      const movementPattern = Math.floor(Math.random() * 5);
+      let vx, vy;
+      
+      switch(movementPattern) {
+        case 0: // Horizontal movement
+          vx = (Math.random() * 0.3 - 0.15) * 2;
+          vy = 0;
+          break;
+        case 1: // Vertical movement
+          vx = 0;
+          vy = (Math.random() * 0.3 - 0.15) * 2;
+          break;
+        case 2: // Diagonal movement
+          vx = (Math.random() * 0.2 - 0.1) * 2;
+          vy = (Math.random() * 0.2 - 0.1) * 2;
+          break;
+        case 3: // Circular movement (based on position)
+          const angleToCenter = Math.atan2(y - 50, x - 50);
+          vx = Math.cos(angleToCenter + Math.PI/2) * 0.15;
+          vy = Math.sin(angleToCenter + Math.PI/2) * 0.15;
+          break;
+        default: // Random movement
+          vx = Math.random() * 0.3 - 0.15;
+          vy = Math.random() * 0.3 - 0.15;
+      }
+      
+      positions.push({
+        x: x,
+        y: y,
+        vx: vx,
+        vy: vy,
+        angle: 0,
+        isDragging: false,
+        size: 40,
+        baseSpeed: 1,
+        speedMultiplier: 1,
+        movementPattern: movementPattern,
+        patternCounter: 0,
+        changeInterval: 200 + Math.random() * 300
+      });
     }
     
-    return {
-      x: 50 + Math.cos(angle) * distance,
-      y: 50 + Math.sin(angle) * distance,
-      vx: vx,
-      vy: vy,
-      angle: 0,
-      isDragging: false,
-      size: 40,
-      baseSpeed: 1,
-      speedMultiplier: 1,
-      movementPattern: movementPattern, // Store the pattern for later reference
-      patternCounter: 0, // Counter to track pattern changes
-      changeInterval: 200 + Math.random() * 300 // When to change direction
-    }
-  }));
+    return positions;
+  };
+
+  // Initialize positions with truly random placement
+  const positionsRef = useRef(generateRandomPositions());
 
   // Check for collisions between two icons
   const checkCollision = (icon1, icon2) => {
@@ -152,8 +196,8 @@ export default function InteractiveSkillBackground() {
             break;
           case 2: // Diagonal to circular
             const angle = Math.atan2(pos.y - 50, pos.x - 50);
-            pos.vx = Math.cos(angle) * 0.15;
-            pos.vy = Math.sin(angle) * 0.15;
+            pos.vx = Math.cos(angle + Math.PI/2) * 0.15;
+            pos.vy = Math.sin(angle + Math.PI/2) * 0.15;
             pos.movementPattern = 3;
             break;
           case 3: // Circular to random
@@ -170,6 +214,24 @@ export default function InteractiveSkillBackground() {
     }
   };
 
+  // Start auto cycling through skills
+  const startAutoCycle = () => {
+    if (autoCycleTimerRef.current) {
+      clearInterval(autoCycleTimerRef.current);
+    }
+    
+    autoCycleTimerRef.current = setInterval(() => {
+      setAutoActiveSkill(prev => {
+        // Randomly select next skill instead of sequential
+        let next;
+        do {
+          next = Math.floor(Math.random() * skills.length);
+        } while (next === prev && skills.length > 1); // Ensure different skill
+        return next;
+      });
+    }, 3000); // Change every 3 seconds
+  };
+
   // Animation loop with collision detection
   const animate = () => {
     const positions = positionsRef.current;
@@ -180,8 +242,8 @@ export default function InteractiveSkillBackground() {
       // Update movement pattern occasionally
       updateMovementPattern(pos);
       
-      // Apply speed multiplier (3x if selected)
-      const speedMultiplier = selectedIcon === index ? 3 : 1;
+      // Apply speed multiplier (3x if selected or auto-active)
+      const speedMultiplier = (selectedIcon === index || autoActiveSkill === index) ? 3 : 1;
       
       // Update position with velocity
       pos.x += pos.vx * speedMultiplier;
@@ -189,33 +251,21 @@ export default function InteractiveSkillBackground() {
       pos.angle += 0.5 * speedMultiplier;
       
       // Bounce off edges with more force
-      if (pos.x < 5) {
-        pos.x = 5;
+      const edgeBuffer = 5; // Keep 5% from edges
+      if (pos.x < edgeBuffer) {
+        pos.x = edgeBuffer;
         pos.vx = Math.abs(pos.vx) * (0.5 + Math.random() * 0.5);
-      } else if (pos.x > 95) {
-        pos.x = 95;
+      } else if (pos.x > 100 - edgeBuffer) {
+        pos.x = 100 - edgeBuffer;
         pos.vx = -Math.abs(pos.vx) * (0.5 + Math.random() * 0.5);
       }
       
-      if (pos.y < 5) {
-        pos.y = 5;
+      if (pos.y < edgeBuffer) {
+        pos.y = edgeBuffer;
         pos.vy = Math.abs(pos.vy) * (0.5 + Math.random() * 0.5);
-      } else if (pos.y > 95) {
-        pos.y = 95;
+      } else if (pos.y > 100 - edgeBuffer) {
+        pos.y = 100 - edgeBuffer;
         pos.vy = -Math.abs(pos.vy) * (0.5 + Math.random() * 0.5);
-      }
-      
-      // Apply centripetal force to prevent clustering in center
-      const centerX = 50;
-      const centerY = 50;
-      const dx = pos.x - centerX;
-      const dy = pos.y - centerY;
-      const distanceToCenter = Math.sqrt(dx * dx + dy * dy);
-      
-      if (distanceToCenter < 20) {
-        const force = (20 - distanceToCenter) * 0.005;
-        pos.vx += dx / distanceToCenter * force;
-        pos.vy += dy / distanceToCenter * force;
       }
       
       // Apply to DOM
@@ -279,6 +329,8 @@ export default function InteractiveSkillBackground() {
   const handleIconClick = (index, e) => {
     e.stopPropagation();
     setSelectedIcon(selectedIcon === index ? null : index);
+    // When user clicks an icon, reset the auto-cycle to start fresh
+    setAutoActiveSkill(index);
   };
 
   // Handle click outside icons
@@ -297,7 +349,18 @@ export default function InteractiveSkillBackground() {
       window.removeEventListener('mouseup', handleMouseUp);
       cancelAnimationFrame(animationRef.current);
     };
-  }, [activeIcon, selectedIcon]);
+  }, [activeIcon, selectedIcon, autoActiveSkill]);
+
+  // Start auto-cycling when component mounts
+  useEffect(() => {
+    startAutoCycle();
+    
+    return () => {
+      if (autoCycleTimerRef.current) {
+        clearInterval(autoCycleTimerRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="relative w-full h-full overflow-hidden z-50" onClick={handleContainerClick}>
@@ -369,6 +432,14 @@ export default function InteractiveSkillBackground() {
         }}
       />
       
+      {/* Auto-cycling indicator */}
+      <div className="absolute top-4 right-4 z-20">
+        <div className="flex items-center gap-2 bg-black/30 backdrop-blur-sm rounded-full px-3 py-1.5 border border-white/20">
+          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+          <span className="text-xs text-white font-medium">Auto-showing: {skills[autoActiveSkill].name} (3s)</span>
+        </div>
+      </div>
+      
       {/* Animated Skill Icons */}
       <div 
         ref={containerRef}
@@ -387,6 +458,7 @@ export default function InteractiveSkillBackground() {
               cursor-move group
               ${activeIcon === index ? 'scale-125 z-10 shadow-lg shadow-white/20' : ''}
               ${selectedIcon === index ? '!scale-150 !shadow-xl !shadow-white/30' : ''}
+              ${autoActiveSkill === index ? '!scale-140 !shadow-lg !shadow-white/25' : ''}
               will-change-transform
             `}
             style={{
@@ -402,16 +474,16 @@ export default function InteractiveSkillBackground() {
               {skill.icon}
             </div>
             
-            {/* Skill percentage display */}
+            {/* Skill percentage display - Always show for auto-active skill */}
             <div className={`absolute -bottom-8 left-1/2 transform -translate-x-1/2 
-              ${selectedIcon === index ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} 
+              ${selectedIcon === index || autoActiveSkill === index ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} 
               transition-opacity duration-300 w-full text-center pointer-events-none`}>
               <div className="text-xs font-medium text-white mb-1 whitespace-nowrap">
                 {skill.name}
               </div>
               <div className="w-full bg-gray-700/50 rounded-full h-1.5">
                 <div 
-                  className="bg-cyan-400 h-1.5 rounded-full" 
+                  className="bg-cyan-400 h-1.5 rounded-full transition-all duration-1000 ease-out" 
                   style={{ width: `${skill.percentage}%` }}
                 ></div>
               </div>
